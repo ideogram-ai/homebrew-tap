@@ -23,13 +23,22 @@ jobs:
       # Checks this repository out as the ideogram-ai/tap tap, in the workspace.
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@63a2d4d8d4193eab3e62b1b782ff3ab8408f5b29 # main
+        # This tap is internal, so fetching it and pushing the bump both need a token.
+        with:
+          token: ${{ github.token }}
 
       - name: Compare the formula with PyPI
         id: versions
         shell: bash
         run: |
           set -euo pipefail
-          latest="$(curl -fsSL https://pypi.org/pypi/ideogram-cli/json | jq -r .info.version)"
+          status="$(curl -sSL -o "$RUNNER_TEMP/pypi.json" -w '%{http_code}' https://pypi.org/pypi/ideogram-cli/json)"
+          if [[ "$status" == 404 ]]; then
+            echo "ideogram-cli is not on PyPI yet; nothing to bump."
+            exit 0
+          fi
+          [[ "$status" == 200 ]]
+          latest="$(jq -r .info.version "$RUNNER_TEMP/pypi.json")"
           current="$(brew info --json=v2 ideogram-ai/tap/ideogram | jq -r '.formulae[0].versions.stable')"
           echo "PyPI: $latest, formula: $current"
           echo "latest=$latest" >> "$GITHUB_OUTPUT"
