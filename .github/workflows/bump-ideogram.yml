@@ -14,6 +14,7 @@ concurrency:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   bump:
@@ -46,6 +47,11 @@ jobs:
           sdist="$(curl -fsSL "https://pypi.org/pypi/ideogram-cli/$VERSION/json" | jq -c '.urls[] | select(.packagetype == "sdist")')"
           url="$(jq -r .url <<< "$sdist")"
           sha256="$(jq -r .digests.sha256 <<< "$sdist")"
+          filename="$(jq -r .filename <<< "$sdist")"
+          # PyPI records which workflow uploaded each file. A release uploaded any other way, such
+          # as with an owner's API token, has no matching record and never reaches brew users.
+          curl -fsSL "https://pypi.org/integrity/ideogram-cli/$VERSION/$filename/provenance" \
+            | jq -e '[.attestation_bundles[].publisher] | length > 0 and all(.repository == "ideogram-ai/ui" and .workflow == "ideogram-cli-pypi.yml" and .environment == "pypi")'
           sed -i '/Placeholder until the first PyPI release/d' Formula/ideogram.rb
           sed -i -E "0,/^  url \"/s|^  url \".*\"|  url \"$url\"|" Formula/ideogram.rb
           sed -i -E "0,/^  sha256 \"/s|^  sha256 \".*\"|  sha256 \"$sha256\"|" Formula/ideogram.rb
@@ -70,3 +76,20 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -am "ideogram $VERSION"
           git push origin HEAD:main
+
+      # A failed bump leaves the formula on the old release; one open issue collects every failure.
+      - name: Report the failure
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="Bump ideogram is failing"
+          issue="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title \"$title\"" --json number --jq '.[0].number // empty')"
+          if [[ -n "$issue" ]]; then
+            gh issue comment "$issue" --repo "$GITHUB_REPOSITORY" --body "Failed again: $RUN_URL"
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "The formula is stuck on its current release. Failed run: $RUN_URL"
+          fi
