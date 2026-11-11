@@ -1,0 +1,72 @@
+name: Bump ideogram
+
+# ideogram-ai/ui publishes a new ideogram-cli to PyPI on every merge that changes the CLI. This
+# moves the formula to the newest release and its dependencies, and pushes to main only after
+# the formula installs from source and passes its test.
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: bump-ideogram
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      # Checks this repository out as the ideogram-ai/tap tap, in the workspace.
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@63a2d4d8d4193eab3e62b1b782ff3ab8408f5b29 # main
+
+      - name: Compare the formula with PyPI
+        id: versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest="$(curl -fsSL https://pypi.org/pypi/ideogram-cli/json | jq -r .info.version)"
+          current="$(brew info --json=v2 ideogram-ai/tap/ideogram | jq -r '.formulae[0].versions.stable')"
+          echo "PyPI: $latest, formula: $current"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [[ "$latest" != "$current" ]]; then
+            echo "bump=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Point the formula at the new sdist
+        if: steps.versions.outputs.bump == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.versions.outputs.latest }}
+        run: |
+          set -euo pipefail
+          sdist="$(curl -fsSL "https://pypi.org/pypi/ideogram-cli/$VERSION/json" | jq -c '.urls[] | select(.packagetype == "sdist")')"
+          url="$(jq -r .url <<< "$sdist")"
+          sha256="$(jq -r .digests.sha256 <<< "$sdist")"
+          sed -i '/Placeholder until the first PyPI release/d' Formula/ideogram.rb
+          sed -i -E "0,/^  url \"/s|^  url \".*\"|  url \"$url\"|" Formula/ideogram.rb
+          sed -i -E "0,/^  sha256 \"/s|^  sha256 \".*\"|  sha256 \"$sha256\"|" Formula/ideogram.rb
+          # Homebrew holds back releases younger than a cooldown; this one is ours and just landed.
+          brew update-python-resources --install-dependencies --ignore-main-package-cooldown \
+            --exclude-packages certifi ideogram-ai/tap/ideogram
+          git diff
+
+      - name: Install from source and test
+        if: steps.versions.outputs.bump == 'true'
+        run: |
+          brew install --build-from-source ideogram-ai/tap/ideogram
+          brew test ideogram-ai/tap/ideogram
+          brew audit --formula ideogram-ai/tap/ideogram
+
+      - name: Push the bump
+        if: steps.versions.outputs.bump == 'true'
+        env:
+          VERSION: ${{ steps.versions.outputs.latest }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -am "ideogram $VERSION"
+          git push origin HEAD:main
