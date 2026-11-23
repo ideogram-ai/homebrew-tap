@@ -1,8 +1,8 @@
 name: Bump ideogram
 
-# ideogram-ai/ui publishes a new ideogram-cli to PyPI on every merge that changes the CLI. This
-# moves the formula to the newest release and its dependencies, and pushes to main only after
-# the formula installs from source and passes its test.
+# ideogram-ai/ui publishes ideogram-cli to PyPI when a release is run by hand. This moves the
+# formula to the newest release and its dependencies, and pushes to main only after the formula
+# installs from source and passes its test.
 on:
   schedule:
     - cron: '23 * * * *'
@@ -23,7 +23,7 @@ jobs:
       # Checks this repository out as the ideogram-ai/tap tap, in the workspace.
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@63a2d4d8d4193eab3e62b1b782ff3ab8408f5b29 # main
-        # This tap is internal, so fetching it and pushing the bump both need a token.
+        # Pushing the bump to main needs a token.
         with:
           token: ${{ github.token }}
 
