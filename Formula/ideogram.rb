@@ -3,9 +3,8 @@ class Ideogram < Formula
 
   desc "Command-line client for the Ideogram API"
   homepage "https://developer.ideogram.ai"
-  # Placeholder until the first PyPI release; the bump workflow replaces url and sha256.
-  url "https://files.pythonhosted.org/packages/source/i/ideogram-cli/ideogram_cli-0.1.0.tar.gz"
-  sha256 "c6f185349a9bf8043035b348541aeef16bf36ec53ae51a7fd6f4d385a4c2a9e9"
+  url "https://files.pythonhosted.org/packages/0e/a6/e3a68ee9c3c350fa87674688e6fdd845659a381f815a0baf8b0ca49ad67d/ideogram_cli-0.1.82.tar.gz"
+  sha256 "c516cce8ceb633f51e10382161644819b016dde3b8fe7c4393d1d3619bcbc2b6"
   license "Apache-2.0"
 
   livecheck do
@@ -68,8 +67,8 @@ class Ideogram < Formula
   end
 
   resource "pyyaml" do
-    url "https://files.pythonhosted.org/packages/05/8e/961c0007c59b8dd7729d542c61a4d537767a59645b82a0b521206e1e25c2/pyyaml-6.0.3.tar.gz"
-    sha256 "d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f"
+    url "https://files.pythonhosted.org/packages/76/b8/c0b780928e2fb1c87e9e375818c6f121da2398b071012d1747be300b83f4/pyyaml-6.0.4.tar.gz"
+    sha256 "e24bf71af8a432d7808fabff134d38dfe16d3cbb41f2873bb4b1e42422de0a1a"
   end
 
   resource "rich" do
@@ -83,8 +82,8 @@ class Ideogram < Formula
   end
 
   resource "wcwidth" do
-    url "https://files.pythonhosted.org/packages/ea/01/e5ac23733628a6bbb91913a765fcf55ee8070d8d991bc88fdaaf805052c7/wcwidth-0.9.4.tar.gz"
-    sha256 "fd8d57d3cdfe570e3265c8fab1885c24e34ef40889c0759c0c304a19e9835954"
+    url "https://files.pythonhosted.org/packages/8e/da/d59374b2c893ae70a41fdb064637ccef218f25df8c67e5431a96708235d9/wcwidth-0.9.5.tar.gz"
+    sha256 "713534e2ecb16e0fc39f19e0a5dda997da76d010953e9e8f803e7971f8accd80"
   end
 
   def install
